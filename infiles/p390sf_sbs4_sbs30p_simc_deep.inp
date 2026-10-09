@@ -97,8 +97,6 @@ begin parm spect_offset
 end parm spect_offset
 
 begin parm simulate
-  using_RS = 1          ;  (ONE = TRUE) Forces Rejection Sampling (RS)
-  max_weight_RS = 3.5E-3;  Maximum weight for rejection sampling (ub/MeV/sr^2)
   hard_cuts = 0         ;  (ONE = TRUE) SPedge and Em.max are hard cuts(ntuple)
   using_rad = 1 	;  (ONE = TRUE)
   use_expon = 0		;  (LEAVE AT 0)
@@ -124,4 +122,6 @@ begin parm simulate
   Egamma_gen_max = 0.	;  Set >0 to hardwire the Egamma limits.
   drift_to_cal = 295	;  (ONE = TRUE)
   drift_to_cal2 = 295	;  (ONE = TRUE)
+  using_RS = 1          ;  (ONE = TRUE) Forces Rejection Sampling (RS)
+  max_weight_RS = 5E-6 ;  Maximum weight for rejection sampling (ub/MeV/sr^2)
 end parm simulate

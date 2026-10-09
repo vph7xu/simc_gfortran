@@ -1407,7 +1407,11 @@ CDJG Calculate the "Collins" (phi_pq+phi_targ) and "Sivers"(phi_pq-phi_targ) ang
 	  main%SF_weight=1.0
 	else if (use_benhar_sf.and.doing_heavy) then ! Doing Spectral Functions
 	   call sf_lookup_diff(vertex%Em, vertex%Pm, weight)
-	   main%SF_weight = targ%Z*transparency*weight
+           if (doing_heavy_n) then
+              main%SF_weight = targ%N*transparency*weight
+           else
+	      main%SF_weight = targ%Z*transparency*weight
+           endif
  	else if (doing_deuterium .or. doing_deuterium_n .or. (doing_heavy.and.(.not.use_benhar_sf))) then
 	  main%SF_weight = 0.0
 	  do i=1,nrhoPm
@@ -1461,9 +1465,13 @@ CDJG Calculate the "Collins" (phi_pq+phi_targ) and "Sivers"(phi_pq-phi_targ) ang
 	  main%sigcc_recon = sigep(recon,1)
 
 	elseif (doing_deuterium.or.doing_heavy) then
-	  main%sigcc = deForest(vertex,1)		
-	  main%sigcc_recon = deForest(recon,1)
-
+          if (doing_heavy_n) then
+            main%sigcc = deForest(vertex,2)
+            main%sigcc_recon = deForest(recon,2)
+          else
+	    main%sigcc = deForest(vertex,1)		
+	    main%sigcc_recon = deForest(recon,1)
+          endif
 	elseif (doing_deuterium_n) then
 	  main%sigcc = deForest(vertex,2)		
 	  main%sigcc_recon = deForest(recon,2)

@@ -1,0 +1,255 @@
+; This is a CTP file
+;
+; 'TF' stands for 'this field'
+; ONE equals TRUE unless specified otherwise.
+;
+; Notes:
+;   - Positive ngen = requested number of accepted/successful events.
+;   - Negative ngen = requested number of trials/throws.
+;   - For an initial rejection-sampling study, it is useful to run
+;     with using_RS = 0 and ngen < 0, determine the observed maximum weight,
+;     then enable using_RS with a safe max_weight_RS for that kinematic.
+;   - Do NOT assume the same max_weight_RS for GEN2, GEN3, GEN4, proton,
+;     and neutron. Determine it separately for each case.
+
+; ================================================================
+; GEN4 3He(e,e'p)
+; ================================================================
+
+begin parm experiment
+  ngen = 1000                    ; POS: # of successes; NEG: # of tries
+                                 ; Example pilot: ngen = -100000 gives exactly
+                                 ; 100000 trials and then stops.
+  EXPER%charge = 1.0             ; total accumulated charge (mC)
+
+  doing_deuterium_n = 0          ; ONE = use the special D(e,e'n) process.
+                                 ; Must remain 0 for 3He proton/neutron knockout.
+
+  doing_heavy_n = 0              ; CUSTOM FLAG added for A>=3 neutron knockout.
+                                 ; 0 -> normal heavy-target proton path, e.g. 3He(e,e'p)
+                                 ; 1 -> heavy-target neutron path, e.g. 3He(e,e'n)
+                                 ; The source internally sets doing_heavy = TRUE
+                                 ; for A>=3; do NOT also turn on doing_heavy here.
+
+  doing_phsp = 0                 ; ONE = phase-space generation.
+                                 ; If all ordinary reaction flags are false,
+                                 ; stock SIMC behavior is (e,e'p).
+  doing_kaon = 0                 ; ONE = kaon production mode.
+  doing_pion = 0                 ; ONE = pion production mode.
+  doing_decay = 0                ; 1 = decay ON, 0 = decay OFF.
+  ctau = 780.4                   ; decay length (cm); irrelevant when decay is OFF.
+
+  ;extra_dbase_file='extra_hydrogen'
+                                 ; optional additional database file.
+
+  use_benhar_sf = 1              ; 1 = use the tabulated A>=3 spectral function.
+                                 ; For 3He this reads benharsf_3mod.dat.
+                                 ; selects proton column of the 3He spectral-function table.
+
+  transparency = 1               ; nuclear transparency factor multiplying SF weight.
+                                 ; Keep 1.0 for present validation unless a specific
+                                 ; proton/neutron transparency prescription is applied.
+
+  random_seed = -1               ; requests a different random seed every run.
+                                 ; Your batch wrapper may overwrite this with a
+                                 ; job-specific seed for reproducibility.
+end parm experiment
+
+
+begin parm kinematics_main
+  Ebeam = 8448.0                 ; incident electron beam energy (MeV).
+  dEbeam = 0.05                  ; beam-energy variation (%).
+
+  electron_arm = 8               ; spectrometer/arm selector used by BigBite branch.
+                                 ; Legacy examples: 1=HMS, 2=SOS, 3=HRS-R, 4=HRS-L.
+  hadron_arm = 7                 ; hadron/SBS arm selector used by BigBite branch.
+
+  spec%e%P = 3210.0              ; electron-arm central momentum (MeV/c).
+  spec%e%theta = 35.0            ; electron-arm central angle (degrees).
+
+  spec%p%P = 6110.0              ; hadron-arm central momentum (MeV/c).
+                                 ; Variable name remains spec%p even for neutron mode.
+  spec%p%theta = 18.0            ; SBS/hadron-arm central angle (degrees).
+end parm kinematics_main
+
+
+begin parm target
+  targ%A = 3.0                    ; nuclear mass number A.
+  targ%Z = 2.0                    ; proton number Z for 3He.
+  targ%mass_amu = 3.014932        ; 3He target mass in atomic mass units.
+
+  targ%mrec_amu = 2.013554        ; recoil/residual-system reference mass (amu).
+                                 ; Here: residual deuteron for proton knockout.
+                                 ; For proton knockout use deuteron-like A-1 mass.
+                                 ; For neutron knockout use the pp threshold-system
+                                 ; reference used in this modified setup.
+
+  targ%rho = 0.0016               ; target density (g/cm^3).
+  targ%thick = 96.0               ; target thickness (mg/cm^2).
+                                 ; With rho=0.0016 g/cm^3 this corresponds to
+                                 ; roughly 60 cm physical target length.
+
+  targ%angle = 0.0                ; target angle for solid targets (degrees).
+  targ%abundancy = 100.           ; target purity/abundance (%).
+  targ%can = 5                    ; target-can geometry selector used by this setup.
+                                 ; Legacy comments often list 1=beer can (fpi),
+                                 ; 2=pudding can (nucpi); 5 is the 3He setup used here.
+end parm target
+
+
+begin parm debug                  ; ONES give additional SIMC diagnostics
+  debug(1) = 0                    ; bremsstrahlung/radiation output from brem.f.
+  debug(2) = 0                    ; into/outa energy-loss routines.
+  debug(3) = 0                    ; initialization/main-loop values.
+  debug(4) = 0                    ; mostly comp_ev / gen_rad diagnostics.
+  debug(5) = 0                    ; a little of everything.
+end parm debug
+
+
+begin parm e_arm_accept
+  SPedge%e%delta%min = -25.0      ; minimum electron momentum deviation (%).
+  SPedge%e%delta%max =  20.0      ; maximum electron momentum deviation (%).
+
+  SPedge%e%yptar%min = -100.0     ; target y' minimum (mrad).
+  SPedge%e%yptar%max =  100.0     ; target y' maximum (mrad).
+
+  SPedge%e%xptar%min = -300.0     ; target x' minimum (mrad).
+  SPedge%e%xptar%max =  300.0     ; target x' maximum (mrad).
+end parm e_arm_accept
+
+
+begin parm p_arm_accept
+  SPedge%p%delta%min = -30.0      ; hadron momentum deviation minimum (%).
+  SPedge%p%delta%max =  30.0      ; hadron momentum deviation maximum (%).
+                                 ; For A>=3 SIMC this is an independently
+                                 ; generated hadron-momentum dimension and can
+                                 ; strongly affect generation efficiency.
+
+  SPedge%p%yptar%min = -150.0     ; hadron target y' minimum (mrad).
+  SPedge%p%yptar%max =  150.0     ; hadron target y' maximum (mrad).
+
+  SPedge%p%xptar%min = -300.0     ; hadron target x' minimum (mrad).
+  SPedge%p%xptar%max =  300.0     ; hadron target x' maximum (mrad).
+end parm p_arm_accept
+
+
+; These describe the generated beam spot/raster and target offsets.
+begin parm beamandtargetinfo
+  gen%xwid = 0.034                ; beam x width, one sigma (cm).
+  gen%ywid = 0.014                ; beam y width, one sigma (cm).
+
+  targ%fr_pattern = 3.            ; raster pattern:
+                                 ; 1=square, 2=circular, 3=flat square.
+  targ%fr1 = 0.1                  ; horizontal size, or inner radius for pattern 2.
+  targ%fr2 = 0.1                  ; vertical size, or outer radius for pattern 2.
+
+  targ%xoffset = 0.0              ; target x offset (cm), +x = beam right.
+  targ%yoffset = 0.0              ; target y offset (cm), +y = up.
+  targ%zoffset = 0.0              ; target z offset (cm), +z = downstream.
+                                 ; z_real = z_nominal + zoffset.
+end parm beamandtargetinfo
+
+
+; Offsets are applied before calls to the single-arm Monte Carlos.
+; They are expressed in each spectrometer coordinate system.
+; Positive xptar offset means the spectrometer is positioned at larger xptar.
+begin parm spect_offset
+  spec%e%offset%x = 0.0           ; electron-arm x offset (cm).
+  spec%e%offset%y = 0.0           ; electron-arm y offset (cm).
+  spec%e%offset%z = 0.0           ; electron-arm z offset (cm).
+  spec%e%offset%xptar = 0.0       ; electron-arm x' offset (mrad).
+  spec%e%offset%yptar = 0.0       ; electron-arm y' offset (mrad).
+
+  spec%p%offset%x = 0.0           ; hadron-arm x offset (cm).
+  spec%p%offset%y = 0.0           ; hadron-arm y offset (cm).
+  spec%p%offset%z = 0.0           ; hadron-arm z offset (cm).
+  spec%p%offset%xptar = 0.0       ; hadron-arm x' offset (mrad).
+  spec%p%offset%yptar = 0.0       ; hadron-arm y' offset (mrad).
+end parm spect_offset
+
+
+begin parm simulate
+  hard_cuts = 0                   ; ONE = make SPedge and Em.max hard ntuple cuts.
+                                 ; 0 leaves the generated event record less restricted.
+
+  using_rad = 1                   ; ONE = include radiative effects.
+  use_expon = 0                   ; normally leave at 0.
+
+  one_tail = 0                    ; radiation-tail selector:
+                                 ; 0 = all radiating legs,
+                                 ; 1 = incoming electron only,
+                                 ; 2 = scattered electron only,
+                                 ; 3 = outgoing hadron only,
+                                 ; -3 = all except outgoing hadron.
+
+  intcor_mode = 1                 ; internal-correction mode; normally leave at 1.
+
+  spect_mode = 0                  ; spectrometer mode:
+                                 ; 0  = e + hadron arms,
+                                 ; -1 = hadron arm only,
+                                 ; -2 = electron arm only,
+                                 ; 1  = neither single-arm transport.
+
+  cuts%Em%min = 0.                ; missing-energy lower cut (MeV).
+  cuts%Em%max = 250.              ; missing-energy upper cut (MeV).
+                                 ; Setting min=max=0 is SIMC's wide-open convention.
+                                 ; 250 MeV covers the tabulated 3He SF region used here.
+
+  using_Eloss = 1                ; ONE = simulate ionization/energy loss.
+  correct_Eloss = 0              ; ONE = correct reconstructed quantities for Eloss.
+
+  correct_raster = 1             ; ONE = reconstruct using raster matrix elements.
+
+  mc_smear = 1                   ; ONE = apply target/hut multiple scattering
+                                 ; and drift-chamber resolution smearing.
+
+  deForest_flag = 0              ; off-shell e-N prescription:
+                                 ; 0 = sigma_cc1,
+                                 ; 1 = sigma_cc2,
+                                 ; -1 = sigma_cc1 on-shell.
+                                 ; In modified heavy-neutron mode deForest()
+                                 ; is called with neutron form factors.
+
+  rad_flag = 0                    ; radiative option #1; see init.f.
+  extrad_flag = 2                 ; radiative option #2; see init.f.
+
+  lambda(1) = 0.0                ; used if rad_flag = 4.
+  lambda(2) = 0.0
+  lambda(3) = 0.0
+
+  Nntu = 1                       ; ONE = generate SIMC ntuple/output events.
+
+  using_Coulomb = 1              ; ONE = include Coulomb correction.
+                                 ; In this setup it is implemented for the beam
+                                 ; and scattered electron only.
+
+  dE_edge_test = 0.              ; utility for shifting/checking energy edges.
+
+  use_offshell_rad = 1           ; ONE = use off-shell radiative treatment.
+
+  Egamma_gen_max = 0.            ; >0 hardwires the generated photon-energy limit.
+                                 ; 0 lets SIMC determine its normal limit.
+
+  drift_to_cal = 295             ; drift/single-arm transport setting used here.
+  drift_to_cal2 = 295            ; corresponding second-arm setting.
+
+  using_RS = 1                   ; Rejection sampling:
+                                 ; 0 = OFF: keep weighted events. Best for pilot
+                                 ;     studies of the full weight distribution.
+                                 ; 1 = ON: accept/reject using weight/max_weight_RS.
+                                 ;
+                                 ; Example production workflow:
+                                 ;   1) pilot with using_RS = 0
+                                 ;   2) inspect observed maximum event weight
+                                 ;   3) choose safe max_weight_RS above that maximum
+                                 ;   4) set using_RS = 1
+                                 ;   5) require wtGTmaxwt = 0 in production summary
+
+  max_weight_RS = 7e-7            ; rejection-sampling maximum weight
+                                 ; (ub/MeV/sr^2 in this SIMC implementation).
+                                 ; Example syntax only:
+                                 ;   max_weight_RS = 1.000000E-04
+                                 ; Do NOT copy that example value blindly.
+                                 ; Determine a safe value independently for this
+                                 ; GEN4 p-knockout configuration.
+end parm simulate

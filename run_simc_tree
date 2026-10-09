@@ -1,9 +1,95 @@
-./simc << endofinput &> runout/$1.out
-$1
-endofinput
-cd util/root_tree
-./make_root_tree << endofinput &>> ../../runout/$1.out
-$1
-endofinput
-cd ../..
-rm worksim/$1.bin
+#./simc << endofinput &> runout/$1.out
+#$1
+#endofinput
+#cd util/root_tree
+#./make_root_tree << endofinput &>> ../../runout/$1.out
+#$1
+#endofinput
+#cd ../..
+#rm worksim/$1.bin
+#!/bin/bash
+
+name="$1"
+
+if [[ -z "$name" ]]; then
+    echo "Usage: $0 <SIMC input basename>"
+    exit 1
+fi
+
+echo "=================================================="
+echo "Running SIMC: $name"
+echo "=================================================="
+
+# --------------------------------------------------
+# Run SIMC
+# --------------------------------------------------
+
+./simc <<EOF > "runout/${name}.out" 2>&1
+$name
+EOF
+
+simc_status=$?
+
+if [[ $simc_status -ne 0 ]]; then
+    echo "ERROR: SIMC failed with status $simc_status"
+    exit $simc_status
+fi
+
+if [[ ! -s "worksim/${name}.bin" ]]; then
+    echo "ERROR: SIMC did not produce:"
+    echo "       worksim/${name}.bin"
+    exit 1
+fi
+
+echo "SIMC binary created:"
+ls -lh "worksim/${name}.bin"
+
+# --------------------------------------------------
+# Convert BIN -> ROOT
+# --------------------------------------------------
+
+echo
+echo "Converting SIMC binary to ROOT..."
+
+cd util/root_tree || {
+    echo "ERROR: Cannot enter util/root_tree"
+    exit 1
+}
+
+./make_root_tree <<EOF >> "../../runout/${name}.out" 2>&1
+$name
+EOF
+
+root_status=$?
+
+cd ../.. || exit 1
+
+if [[ $root_status -ne 0 ]]; then
+    echo "ERROR: make_root_tree failed with status $root_status"
+    echo "Keeping worksim/${name}.bin for debugging."
+    exit $root_status
+fi
+
+# --------------------------------------------------
+# Verify ROOT output
+# --------------------------------------------------
+
+if [[ ! -s "worksim/${name}.root" ]]; then
+    echo "ERROR: ROOT conversion finished but:"
+    echo "       worksim/${name}.root"
+    echo "was not created."
+    echo
+    echo "Keeping the .bin file for debugging."
+    exit 1
+fi
+
+echo
+echo "ROOT file created successfully:"
+ls -lh "worksim/${name}.root"
+
+# Only delete BIN after ROOT file is confirmed
+rm -f "worksim/${name}.bin"
+
+echo
+echo "SIMC + ROOT conversion completed successfully."
+

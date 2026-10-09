@@ -201,6 +201,14 @@ C DJG:
 	   doing_herho = (nint(targ%A).eq.3)
 	   doing_eep=.false.
 
+        else if (doing_heavy_n) then ! A(e,e'n), A >= 3
+           if (nint(targ%A).lt.3) then
+             stop 'doing_heavy_n requires target A >= 3'
+           endif
+           Mh = Mn
+           doing_eep = .true.
+           doing_heavy = .true.
+
 	else if (doing_deuterium_n) then ! D(ee'n)
 	  Mh=Mn
 	  doing_eep = .true.
@@ -212,6 +220,18 @@ C DJG:
 	  doing_deuterium = (nint(targ%A).eq.2)
 	  doing_heavy = (nint(targ%A).ge.3)
 	endif
+
+        if (doing_heavy_n) then
+           write(6,*) '=============================================='
+           write(6,*) ' Heavy-target neutron knockout A(e,e''n)'
+           write(6,*) ' Target A = ', targ%A
+           write(6,*) ' Target Z = ', targ%Z
+           write(6,*) ' Target N = ', targ%A-targ%Z
+           write(6,*) ' Mh       = ', Mh
+           write(6,*) ' Mn       = ', Mn
+           write(6,*) ' doing_heavy = ', doing_heavy
+           write(6,*) '=============================================='
+        endif
 
 	Mh2 = Mh*Mh
 	Mh2_final = Mh2
@@ -286,7 +306,7 @@ C DJG:
 	  targ%Mtar_struck = Mp
 	  targ%Mrec_struck = 0.0
 	  sign_hadron=1.0
-	  if (doing_deuterium_n) then
+          if (doing_deuterium_n .or. doing_heavy_n) then
 	     targ%Mtar_struck = Mn
 	  endif
 	else if (doing_delta) then		!Strike (and detect) proton, pion 'recoil'
@@ -351,6 +371,13 @@ C DJG:
 	  else
 	    stop 'Bad value for which_pion'
 	  endif
+
+          if (doing_heavy_n) then
+            write(6,*) 'Heavy neutron setup:'
+            write(6,*) '  Mtar_struck = ', targ%Mtar_struck
+            write(6,*) '  Mp           = ', Mp
+            write(6,*) '  Mn           = ', Mn
+          endif
 
 	  if (which_pion .ge. 10) then	!Coherent pion production.
 	    if (abs(targ%Mrec_struck-Mrec_guess).gt.100.) then
@@ -585,8 +612,10 @@ C DJG:
 	  endif
 ! Choos proton or neutron spectral function based on targ.Mtar_struck
 	  if (abs(targ%Mtar_struck-Mp).le.1.e-6) then
-	    call sf_lookup_init(tmpfile,.true.)			!proton S.F.
+            write(6,*) 'Initializing PROTON Benhar spectral function'
+	    call sf_lookup_init(tmpfile,.true.)			!proton S.F.      
 	  else if (abs(targ%Mtar_struck-Mn).le.1.e-6) then
+            write(6,*) 'Initializing NEUTRON Benhar spectral function'
 	    call sf_lookup_init(tmpfile,.false.)		!neutron S.F.
 	  else
 	    write(6,*) 'targ%Mtar_struck = ',targ%Mtar_struck
@@ -907,6 +936,7 @@ c	      stop
 	ierr = regparmdouble('dEbeam',dEbeam,0.0)
 	ierr = regparmdouble('EXPER%charge',EXPER%charge,0.0)
 	ierr = regparmint('doing_deuterium_n',doing_deuterium_n_int,0)
+	ierr = regparmint('doing_heavy_n',doing_heavy_n_int,0)
 	ierr = regparmint('doing_kaon',doing_kaon_int,0)
 	ierr = regparmint('which_kaon',which_kaon,0)
 	ierr = regparmint('doing_pion',doing_pion_int,0)
@@ -1053,6 +1083,9 @@ ccc
   	if(mc_smear_int.gt.0) mc_smear=.true. 
 	if(use_benhar_sf_int.gt.0) use_benhar_sf=.true.
 	if(doing_deuterium_n_int.gt.0) doing_deuterium_n=.true.
+	
+        doing_heavy_n = .false.
+        if(doing_heavy_n_int.gt.0) doing_heavy_n=.true.
         if(doing_kaon_int.gt.0) doing_kaon=.true. 
 	if(doing_pion_int.gt.0) doing_pion=.true.
 	if(doing_delta_int.gt.0) doing_delta=.true.

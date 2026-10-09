@@ -77,7 +77,7 @@ begin parm beamandtargetinfo
   targ%yoffset = 0.0		;  target y-offset (cm): +y = up
   targ%zoffset = 0.0		;  target z-offset (cm): +z = downstream
 				;   zreal = znominal + zoffset
-end parm beamandtergetinfo
+end parm beamandtargetinfo
 
 ;These are offsets applied before the call to the single arm montecarlos.
 ; Offsets are in spectrometer coordinate system.  Positive xptar offset
